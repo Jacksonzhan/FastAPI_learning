@@ -3,13 +3,13 @@
 作用：读取.env文件中的配置项，供整个项目使用
 相当于整个系统的"配置读取中心"
 """
-from pydantic import BaseSettings, SettingConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_core.core_schema import model_field
 
 
 class Settings(BaseSettings):
     #告诉pydantic_settings:去哪里读取配置文件
-    model_config = SettingConfigDict(env_file = ".env", env_file_encoding = "urf_8")
+    model_config = SettingsConfigDict(env_file = ".env", env_file_encoding = "utf_8")
     # 文件上传路径
     fast_profile: str = "./file"
 
