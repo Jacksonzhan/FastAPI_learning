@@ -5,6 +5,7 @@
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_core.core_schema import model_field
+from sqlalchemy.engine import URL
 
 
 class Settings(BaseSettings):
@@ -16,9 +17,9 @@ class Settings(BaseSettings):
     # 数据库配置
     db_host: str = "localhost"
     db_port: int = 3306
-    db_name: str = "fastapi"
-    db_user: str = "root"
-    db_password: str = ""
+    db_name: str = "fastapi_db"
+    db_user: str = "fastapi_user"
+    db_password: str = "FastAPI@2027Test!"
 
     # 后端端口
     server_port: int = 8080
@@ -32,15 +33,20 @@ class Settings(BaseSettings):
     token_expire_time: int = 3000
 
     @property
-    def database_url(self) -> str:
+    def database_url(self) -> URL:
         """
         数据库连接地址(pymysql格式)
         拼接后的完整地址类似:
         mysql+pymysql://root:密码@localhost:3306/fastapi?charset=utf8mb4
         """
-        return (
-            f"mysql+pymysql://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}?charset=utf8mb4"
+        return URL.create(
+            drivername="mysql+pymysql",
+            username=self.db_user,
+            password=self.db_password,
+            host=self.db_host,
+            port=self.db_port,
+            database=self.db_name,
+            query={"charset": "utf8mb4"},
         )
 
 
