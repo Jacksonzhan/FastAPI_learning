@@ -3,18 +3,23 @@ from app.core.config import settings
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routers import index
+from app.routers import index, login
 
-# ./.venv/bin/python -m  uvicorn app.main:app --reload --port 8080
+from app.core.exception_handler import register_exception_handlers
+
+# ./.venv/bin/python -m uvicorn app.main:app --reload --port 8080
 # curl -i "http://127.0.0.1:8080/testSuccess" -H "Origin: http://127.0.0.1:90"
 # 创建fastapi应用实例(整个后端就靠它干活)
+
 
 app = FastAPI(title = "FastAPI权限系统",
               docs_url="/docs",
               redoc_url="/redoc")
 # 注册路由(以后每写一个路由文件，就在这里注册一次)
 app.include_router(index.router)
-
+app.include_router(login.router)
+#注册全局异常处理器：
+register_exception_handlers(app)
 # 跨域配置
 # 这个配置就是告诉浏览器: "允许外部网站访问我"
 app.add_middleware(
