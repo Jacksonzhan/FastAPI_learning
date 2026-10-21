@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core import token_service
+from app.core.deps import get_current_user
 from app.core.exception_handler import ServiceError
 from app.db.session import get_db
 from app.schemas.common import ajax_success
 from app.schemas.login import LoginBody
 from app.services import user_service
-from app.utils.security_utils import matches_password
+from app.utils.security_utils import matches_password, get_user_id
 
 router = APIRouter()
 
@@ -45,4 +46,23 @@ def login(body: LoginBody, db: Session = Depends(get_db)):
 
     # 步骤5: 生成JWT令牌
     token = token_service.create_token(login_user)
+
+    # 步骤6: 返回成功结果
     return ajax_success(token = token)
+
+@router.get("/getInfo")
+def gen_info(
+        current_user: dict = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    """
+    获取当前用户信息
+    """
+    # 步骤1:获取当前登录用户的用户ID
+    user_id = get_user_id(current_user)
+
+    # 步骤2:根据用户ID查询用户信息
+    user = user_service.select_user_by_user_id(db, user_id)
+
+    # 步骤3:返回用户信息
+    return ajax_success(data=user)

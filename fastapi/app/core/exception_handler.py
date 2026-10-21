@@ -5,6 +5,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.schemas.common import ajax_error
 
@@ -26,3 +27,15 @@ def register_exception_handlers(app: FastAPI):
         """
         logger.info(f"系统异常: {exc.message}")
         return JSONResponse(status_code=200, content=ajax_error(exc.message))
+
+    @app.exception_handler(StarletteHTTPException)
+    async def handle_http_exception(request: Request, exc: StarletteHTTPException):
+        """
+        处理HTTP异常
+        比如：404、500等预期内的问题
+        返回：{ "code": 500,"msg": "服务器错误"}
+        """
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"code": exc.status_code, "msg": exc.detail}
+        )

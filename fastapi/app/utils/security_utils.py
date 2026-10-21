@@ -35,3 +35,13 @@ def matches_password(password: str, hashed: str) -> str:
         #密文错误(比如数据库里存的是旧数据)，直接返回密码错误
         return False
 
+def get_user_id(current_user: dict) -> int:
+    """
+    从当前登录用户中获取用户ID
+    :param current_user: 当前用户信息
+    :return: 用户ID
+    """
+    user_id = current_user.get("userId")
+    if user_id is None:
+        raise SyntaxError("获取用户信息失败")
+    return user_id

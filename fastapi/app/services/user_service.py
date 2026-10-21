@@ -28,3 +28,15 @@ def select_user_by_name(db:Session, user_name: str) -> dict | None:
     if user is None:
         return None
     return _to_schema(user)
+
+def select_user_by_user_id(db: Session, user_id: int) -> dict | None:
+    """
+    根据用户ID查询用户
+    :param db:数据库会话
+    :param user_id:用户ID
+    :return:用户的对象信息(没查询到就返回None)
+    """
+    user = db.get(User, user_id)
+    if user is None:
+        return None
+    return _to_schema(user)
