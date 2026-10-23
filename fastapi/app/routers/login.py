@@ -15,8 +15,13 @@ from app.utils.security_utils import matches_password, get_user_id
 
 router = APIRouter()
 
-@router.post("/login")
+@router.post("/login", summary="用户登录")
 def login(body: LoginBody, db: Session = Depends(get_db)):
+    """
+    登录接口
+    - 参数：用户名 + 密码
+    - 返回：token
+    """
     # 步骤1:验证参数是否为空
     user_name = (body.user_name or "").strip()
     password = (body.password or "").strip()

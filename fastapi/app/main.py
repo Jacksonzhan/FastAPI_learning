@@ -3,7 +3,8 @@ from app.core.config import settings
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routers import index, login
+from app.routers import index, login, user
+from loguru import logger
 
 from app.core.exception_handler import register_exception_handlers
 
@@ -18,6 +19,7 @@ app = FastAPI(title = "FastAPI权限系统",
 # 注册路由(以后每写一个路由文件，就在这里注册一次)
 app.include_router(index.router)
 app.include_router(login.router)
+app.include_router(user.router)
 #注册全局异常处理器：
 register_exception_handlers(app)
 # 跨域配置
@@ -45,3 +47,16 @@ profile_dir = Path(settings.fast_profile)
 profile_dir.mkdir(parents=True, exist_ok=True)
 # 完成挂载
 app.mount("/profile", StaticFiles(directory=profile_dir), name="profile")
+
+
+# 后端启动标识: 应用启动完成后自动执行
+@app.on_event("startup")
+async def startup():
+    banner = (
+        "\n------------------------------------------\n"
+        "  FastAPI权限系统 启动成功!\n"
+        f"  接口文档地址: http://localhost:{settings.server_port}/docs\n"
+        f"  后端首页地址: http://localhost:{settings.server_port}/\n"
+        "------------------------------------------"
+    )
+    logger.info(banner)
