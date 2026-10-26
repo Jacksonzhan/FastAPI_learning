@@ -15,8 +15,6 @@ class LoginBody(BaseModel):
 class RegisterBody(BaseModel):
     model_config = {"populate_by_name": True}
 
-    user_name : str = Field(alias="userName")
+    user_name : str | None = Field(default=None, alias="userName")
 
-    password : str = Field(min_length = 6, max_length = 20)
-
-    age : int = Field(default = 18, ge = 1, le = 120)
+    password : str | None = None

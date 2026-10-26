@@ -8,8 +8,8 @@ from app.core import token_service
 from app.core.deps import get_current_user
 from app.core.exception_handler import ServiceError
 from app.db.session import get_db
-from app.schemas.common import ajax_success
-from app.schemas.login import LoginBody
+from app.schemas.common import ajax_success, ajax_error
+from app.schemas.login import LoginBody, RegisterBody
 from app.services import user_service
 from app.utils.security_utils import matches_password, get_user_id
 
@@ -71,3 +71,27 @@ def gen_info(
 
     # 步骤3:返回用户信息
     return ajax_success(data=user)
+
+
+@router.post("/register", summary="用户注册")
+def login(body: RegisterBody, db: Session = Depends(get_db)):
+    """
+    注册接口
+    """
+
+    user_name = body.user_name
+    password = body.user_name
+
+    if not user_name:
+        return ajax_error("用户名不存在")
+
+    if not password:
+        return ajax_error("密码不能为空")
+
+    # 执行注册逻辑
+    reg_flag = user_service.register_user(db, body.model_dump(by_alias=True))
+
+    if not reg_flag:
+        return ajax_error("注册失败")
+
+    return ajax_success()

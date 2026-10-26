@@ -5,8 +5,11 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.exception_handler import ServiceError
 from app.models import User
+from app.models.relation import UserRole
 from app.schemas.user import UserSchema
+from app.utils.security_utils import encrypt_password
 
 def _to_schema(user: User) -> dict:
     """
@@ -40,3 +43,27 @@ def select_user_by_user_id(db: Session, user_id: int) -> dict | None:
     if user is None:
         return None
     return _to_schema(user)
+
+
+def register_user(db: Session, user_body: dict) -> int:
+    # 步骤1: 根据用户名查询用户信息(查重)
+    user_name = user_body.get("userName") or ""
+    existing = db.execute(select(User).where(User.user_name == user_name)).scalar_one_or_none()
+    if existing is not None:
+        raise ServiceError("用户名已存在, 请更换用户名后再注册")
+
+    # 步骤2: 新增用户
+    user = User(
+        user_name=user_name,
+        password=encrypt_password(user_body.get("password") or "")
+    )
+
+    db.add(user)
+    db.flush()
+
+    # 步骤3: 注册用户的角色默认为普通用户(角色ID=2)
+    from app.constants import RoleIdConstants
+    db.add(UserRole(user_id=user.user_id, role_id=RoleIdConstants.USER_ROLE_ID))
+
+    db.commit()
+    return 1
