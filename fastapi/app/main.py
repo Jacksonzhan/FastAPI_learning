@@ -3,7 +3,7 @@ from app.core.config import settings
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routers import index, login, user
+from app.routers import index, login, user, profile, role, menu
 from loguru import logger
 
 from app.core.exception_handler import register_exception_handlers
@@ -20,6 +20,9 @@ app = FastAPI(title = "FastAPI权限系统",
 app.include_router(index.router)
 app.include_router(login.router)
 app.include_router(user.router)
+app.include_router(profile.router)
+app.include_router(role.router)
+app.include_router(menu.router)
 #注册全局异常处理器：
 register_exception_handlers(app)
 # 跨域配置

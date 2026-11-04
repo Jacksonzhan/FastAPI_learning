@@ -39,8 +39,21 @@
               </template>
             </el-dropdown>
         </div>
+
       </div>
+
     </el-header>
+
+    <!-- 侧边菜单栏 -->
+    <el-aside style="width: 240px; position: fixed; top: 65px; bottom: 0">
+      <SideBar/>
+    </el-aside>
+
+    <!-- 主布局区域 -->
+    <main style="margin-left: 240px; position: relative; top: 50px">
+      <AppMain/>
+    </main>
+
   </div>
 </template>
 
@@ -52,7 +65,8 @@ import {onMounted, ref, watch} from "vue";
 import {ElMessageBox} from "element-plus";
 import {ArrowDown} from "@element-plus/icons-vue";
 import SvgIcon from "@/components/SvgIcon/index.vue";
-
+import AppMain from "@/views/layout/components/AppMain.vue";
+import SideBar from './components/Sidebar'
 const route = useRoute()
 
 //退出登录
@@ -96,7 +110,7 @@ const getBread = () => {
   //2.如果不是首页，就要在最前面添加首页项
   if (!isDashboard(matched[0])) {
     matched.unshift({
-      path: 'Index',
+      path: '/index',
       meta: {title: '首页'}
     })
   }

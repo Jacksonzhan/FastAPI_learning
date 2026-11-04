@@ -9,5 +9,8 @@ class Base(DeclarativeBase):
     pass
 
 from app.models.user import User
+from app.models.relation import UserRole, RoleMenu
+from app.schemas.role import Role
+from app.models.menu import Menu
 
-__all__ = ["Base","User"]
+__all__ = ["Base", "User", "UserRole", "Role", "RoleMenu", "Menu"]
