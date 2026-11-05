@@ -53,7 +53,17 @@
       <el-form-item label="角色顺序" prop="roleSort">
         <el-input v-model="form.roleSort" placeholder="请输入角色顺序"/>
       </el-form-item>
-      <!-- 菜单权限树: 菜单章节实现, 先占位 -->
+      <el-form-item label="菜单权限">
+        <el-tree style="width: 100%;"
+                 :data="menuOptions"
+                 show-checkbox
+                 default-expand-all
+                 ref="menuRef"
+                 node-key="id"
+                   props="{ label: 'label', children: 'children' }"
+        />
+      </el-form-item>
+
     </el-form>
     <template #footer>
       <div>
@@ -67,9 +77,10 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from "vue";
+import {nextTick, onMounted, ref} from "vue";
 import {deleteRoleByRoleIds, insertRole, selectRoleByRoleId, selectRoleList, updateRole} from "@/api/system/role.js";
 import {ElMessage, ElMessageBox} from "element-plus";
+import {selectRoleMenusTree, selectRoleMenuTree} from "@/api/system/menu.js";
 
 //表单实例
 const roleRef = ref()
@@ -98,22 +109,74 @@ const rules = ref({
   ],
 })
 
+//菜单树数据
+const menuOptions = ref([])
+
+//菜单权限树表单实例
+const menuRef = ref()
+
+//根据角色ID查询对应的菜单树
+const getRoleMenuTreeSelect = (roleId) => {
+  return selectRoleMenuTree(roleId).then(res => {
+    //重置菜单选项前先清空数据, 防止重复数据
+    menuOptions.value = []
+    //赋值新的菜单树数据
+    menuOptions.value = res.menus
+    return res
+  })
+}
+
 //新增按钮
 const handleInsert = () => {
+  if (menuRef.value) {
+    menuRef.value.setCheckedKeys([])
+  }
+
   form.value = {roleId: null, roleName: null, roleSort: null, menuIds: []}
-  open.value = true
-  title.value = '新增角色'
+  //加载菜单树
+  selectRoleMenusTree().then(res => {
+    menuOptions.value = res.data
+    open.value = true
+    title.value = '新增角色'
+  })
 }
 
 //修改按钮
 const handleUpdate = (row) => {
+  //清空树的勾选状态
+  if (menuRef.value) {
+    menuRef.value.setCheckedKeys([])
+  }
+  form.value = {roleId: null, roleName: null, roleSort: null, menuIds: []}
+
   const roleId = row.roleId || ids.value
+
+  //根据角色ID查询对应的菜单树(拿到menus + 选中的菜单项)
+  const roleMenu = getRoleMenuTreeSelect(roleId)
+
   //先查询角色信息(回显到表单中)
   selectRoleByRoleId(roleId).then(res => {
     form.value = res.data
     form.value.roleSort = res.data.role_sort
     open.value = true
     title.value = '修改角色'
+
+    //等待DOM更新完成后, 把该角色已经勾选的菜单设置到树上
+    nextTick(() => {
+      roleMenu.then((res) => {
+        console.log(res, '看看数据')
+        //获取该角色已经选中的菜单key数组
+        let checkedKeys = res.checkedKeys
+        //遍历所有已经选中的菜单key, 在菜单树组件中设置选中状态
+        checkedKeys.forEach((v) => {
+          console.log(v, '啊实打实大大多数')
+          nextTick(() => {
+            menuRef.value.setChecked(v, true, false)
+          })
+        })
+      })
+    })
+
   })
 }
 
@@ -137,10 +200,24 @@ const handleDelete = (row) => {
   })
 }
 
+//获取菜单树中所有被选中的节点
+const getMenuAllCheckedKeys = () => {
+  //全选中的菜单节点
+ let checkedKeys = menuRef.value.getCheckedKeys()
+  //半选中菜单节点
+  let halfCheckedKeys = menuRef.value.getHalfCheckedKeys()
+  //将半选中的节点合并到已选中的节点列表中(半选中的父节点也要保存!)
+  checkedKeys.unshift.apply(checkedKeys, halfCheckedKeys)
+  //返回合并后的所有选中节点ID数组
+  return checkedKeys
+}
+
 //保存按钮
 const submitForm = () => {
   roleRef.value.validate(valid => {
     if (valid) {
+      //提交前先收集勾选的菜单ID
+      form.value.menuIds = getMenuAllCheckedKeys()
       if (form.value.roleId != null) {
         updateRole(form.value).then(res => {
           ElMessage.success('修改成功')

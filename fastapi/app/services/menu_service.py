@@ -190,3 +190,89 @@ def build_menu_tree_select(menus: list[Menu]) -> list[dict]:
         return result
 
     return convert(tree)
+
+def select_menu_tree_router_by_user_id(db: Session, user_id: int) -> list[dict]:
+    """
+    根据用户ID查询该用户的菜单树并且构建成前端需要的路由格式
+    """
+    # 步骤1: 判断用户身份, 获取对应平铺的菜单列表数据
+    role_id = select_role_id_by_user_id(db, user_id)
+    if role_id == RoleIdConstants.ADMIN_ROLE_ID:
+        # 管理员显示所有菜单信息
+        menus = select_menu_list_by_user_id(db, None, None)
+    else:
+        menus = select_menu_list_by_user_id(db, None, user_id)
+
+    # 步骤2: 构建树形结构(父子关系)
+    menu_map: dict[int, Menu] = {}
+    for m in menus:
+        menu_map[m.menu_id] = m
+    # 给每个菜单准备children容器
+    children_map: dict[int, list[Menu]] = {m.menu_id: [] for m in menus}
+    root_menus: list[Menu] = []
+    for m in menus:
+        if m.parent_id == 0:
+            root_menus.append(m)
+        else:
+            parent = menu_map.get(m.parent_id)
+            if parent is not None:
+                children_map[parent.menu_id].append(m)
+
+    # 步骤3: 把构建好的树形菜单转换成前端需要的路由格式
+    return build_menus(root_menus, children_map)
+
+def build_menus(menus: list[Menu], children_map: dict[int, list[Menu]]) -> list[dict]:
+    """
+    构建前端需要的路由格式
+    """
+    routers: list[dict] = []
+    for menu in menus:
+        # 1.路由的名称(name属性): 顶级菜单加菜单ID后缀保证唯一
+        router_name = menu.path or ""
+        if menu.parent_id == 0 and menu.menu_id is not None:
+            router_name = f"{menu.path}_{menu.menu_id}"
+
+        # 2.路由的访问路径(path属性)
+        router_path = menu.path or ""
+        if menu.parent_id == 0 and menu.menu_type == "M":
+            # 一级目录的路径需要以斜杠开头: "system" -> "/system"
+            router_path = "/" + (menu.path or "")
+        elif menu.parent_id == 0 and menu.menu_type == "C":
+            # 一级菜单的路径设置为根路径
+            router_path = "/"
+
+        # 3.路由对应的组件(component)
+        component = "Layout"
+        if menu.component and not (menu.parent_id == 0 and menu.menu_type == "C"):
+            # 菜单配置了组件, 并且不是一级C类型菜单 => 使用菜单配置的组件路径
+            component = menu.component
+        elif not menu.component and menu.parent_id != 0 and menu.menu_type == "M":
+            # 没配置组件, 但是是二级以上的目录 => 使用ParentView
+            component = "ParentView"
+
+        # 4.组装路由对象(空值不放入)
+        router: dict = {"name": router_name, "path": router_path, "component": component}
+        # 路由元数据meta: 标题 + 图标
+        router["meta"] = {"title": menu.menu_name, "icon": menu.icon}
+
+        # 5.处理子菜单(递归处理)
+        c_menus = children_map.get(menu.menu_id, [])
+        if c_menus and menu.menu_type == "M":
+            # 当前菜单中有子菜单, 并且它是目录(M)
+            router["alwaysShow"] = True
+            router["children"] = build_menus(c_menus, children_map)
+        elif menu.parent_id == 0 and menu.menu_type == "C":
+            # 特殊情况: 一级菜单(C类型) => 包一层子路由
+            children: list[dict] = [{
+                "path": menu.path,
+                "component": menu.component,
+                "name": menu.path,
+                "meta": {"title": menu.menu_name, "icon": menu.icon, "path": menu.path}
+            }]
+            router["children"] = children
+            # 一级菜单情况: 副路由不显示meta
+            router.pop("meta", None)
+
+        routers.append(router)
+
+    return routers

@@ -65,8 +65,7 @@ def select_role_menus_tree(db: Session = Depends(get_db)):
     menus = menu_service.select_menu_list_by_user_id(db, None, None)
     return ajax_success(data=menu_service.build_menu_tree_select(menus))
 
-
-@router.get("/selectRoleMenuTree")
+@router.get("/selectRoleMenuTree/{role_id}")
 def select_role_menu_tree(role_id: int, db: Session = Depends(get_db)):
     """
     根据角色ID查询对应的菜单树
@@ -77,4 +76,16 @@ def select_role_menu_tree(role_id: int, db: Session = Depends(get_db)):
     tree = menu_service.build_menu_tree_select(menus)
     # 根据角色ID查询勾选的菜单ID数组
     checked_keys = menu_service.select_menu_list_by_role_id(db, role_id)
-    return ajax_success(checked_keys=checked_keys, menus=tree)
+    return ajax_success(checkedkeys=checked_keys, menus=tree)
+
+@router.get("/getRouters")
+def get_routers(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    获取路由信息(菜单权限)
+    功能: 获取当前用户的菜单权限, 用于前端动态生成路由
+    """
+    # 获取当前用户的ID
+    user_id = get_user_id(current_user)
+    # 根据用户ID查询该用户的菜单树并且构建成前端需要的路由格式
+    routers = menu_service.select_menu_tree_router_by_user_id(db, user_id)
+    return ajax_success(data=routers)

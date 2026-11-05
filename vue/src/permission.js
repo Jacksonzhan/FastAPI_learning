@@ -5,9 +5,10 @@ import {isReLogin} from "@/utils/request.js";
 import useUserStore from '@/stores/modules/userStore';
 import {ElMessage} from "element-plus";
 import {getToken} from "@/utils/auth.js";
+import useRouteStore from "@/stores/modules/routeStore.js";
 
 //设置白名单：定义不需要登录就可以访问的路由地址
-const whiteList = ["/login", "/register"];
+const whiteList = ["/login", "/register", "/user/home"];
 
 //判断路径是否在白名单中
 const isWhiteList = (path) => {
@@ -36,15 +37,33 @@ router.beforeEach((to, form, next) => {
             //检查store中是否有用户信息
             if (useUserStore().name === ''){
                 //设置“正在重新登陆的标志”
-                isReLogin.show = true
+                isReLogin.show = false
 
-                //调用获取用户信息的方法
-                useUserStore().getInfo().then(() => {
-                    //清除标志
-                    isReLogin.show = false
+                //调用路由状态工具中的方法: 生成动态路由
+                    useRouteStore().generateRouters().then(accessRoutes => {
+                        //根据角色权限生成可访问的路由表
+                        accessRoutes.forEach(route => {
+                            router.addRoute(route)
+                        })
 
-                    //跳转到首页(或者原本要去的页面)
-                    next({path: to.path})
+                        //根据角色名称确定跳转路径
+                        const userRoleName = res.data.roleName
+                        let redirectPath = to.path
+                        //如果是根路径, 则通义回到首页
+                        if (to.path === '/' || to.path === '/index') {
+                            if(userRoleName === '超级管理员') {
+                                redirectPath = '/index'
+                            } else {
+                                //普通用户跳转到用户前台首页
+                                redirectPath = '/user/home'
+                            }
+                        }
+                        //如果需要跳转到特定页面
+                        if (redirectPath !== to.path) {
+                            next({ path: redirectPath, replace: true })
+                        } else {
+                            next({ ...to, replace: true })
+                        }
                 }).catch(err => {
                     //获取用户信息失败(token可能过期了)
                     //调用退出登录的办法

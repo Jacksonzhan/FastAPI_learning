@@ -58,3 +58,11 @@ export function selectRoleMenusTree() {
         method: 'get'
     })
 }
+
+//获取路由信息(菜单权限)
+export function getRouters() {
+    return request({
+        url: '/system/menu/getRouters',
+        method: 'get'
+    })
+}
